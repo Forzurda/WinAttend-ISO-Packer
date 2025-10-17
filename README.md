@@ -8,6 +8,12 @@ Features Dark/light UI, progressreporting, and generates a bootable ISO via `osc
 
 ---
 
+### ⚠️ Note on anti-virus false positives
+Due to the nature of the executable being compiled with ps2exe, it is likely to be flagged as a virus. I can confidently say that this app does not perform any harmful actions to your computer. 
+While I can warn you about this and suggest that you whitelist it, you are encouraged to read trough the source code and verify what it does. 
+Alternatively open the .ps1 file directly with powershell, it should function the same as when compiled.   
+
+---
 ## Features
 - WPF GUI (dark/light), uses windows native file picker  
 - Injects `autounattend.xml`, optionally `$OEM$`  
