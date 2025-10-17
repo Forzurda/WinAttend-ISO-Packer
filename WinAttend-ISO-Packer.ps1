@@ -21,8 +21,8 @@ param(
 )
 
 # ---------- App metadata ----------
-$AppTitle   = 'Windows ISO Repacker'
-$AppVersion = 'v1.0'
+$AppTitle   = 'WinAttend ISO Packer'
+$AppVersion = 'v1'
 $AppAuthor  = 'Forz'
 
 # ---------- Relaunch STA/Admin ----------
@@ -100,7 +100,7 @@ $accent = '#FF0078D7'
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="$AppTitle $AppVersion"
+        Title="$AppTitle"
         Height="640" Width="960" MinHeight="560" MinWidth="860"
         WindowStartupLocation="CenterScreen"
         Background="$bg" Foreground="$text" FontFamily="Segoe UI">
@@ -162,7 +162,7 @@ $xaml = @"
     <Border DockPanel.Dock="Top" Background="$panel" BorderBrush="$border" BorderThickness="0,0,0,1" Padding="12,10">
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
         <TextBlock Text="$AppTitle" FontWeight="SemiBold" FontSize="16"/>
-        <TextBlock Text="  -  $AppVersion  -  $AppAuthor" Foreground="$muted" Margin="8,0,0,0"/>
+        <TextBlock Text="$AppVersion  -  $AppAuthor" Foreground="$muted" Margin="8,0,0,0"/>
       </StackPanel>
     </Border>
 
@@ -214,7 +214,7 @@ $xaml = @"
             <!-- OEM -->
             <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Vertical" Margin="0,12,0,0">
             <CheckBox Name="OemCheck" Content="Include `$OEM$ folder"/>
-            <TextBlock Text="Place a folder named `$OEM$ next to the EXE/PS1. Inside, the following are mapped: `$`$ -> C:\Windows  `$1 → C:\"
+            <TextBlock Text="Place a folder named `$OEM$ next to the EXE/PS1. Inside, the following are mapped: `$`$ -> C:\Windows  `$1 -> C:\"
                         Foreground="$muted" TextWrapping="Wrap" Margin="24,4,0,0"/>
             </StackPanel>
         </Grid>
