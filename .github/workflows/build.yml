@@ -1,0 +1,111 @@
+name: Build & Release (ps2exe / PowerShell)
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag (e.g. v1.2.3)"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark as pre-release?"
+        required: false
+        default: false
+        type: boolean
+      notes:
+        description: "Release notes (Markdown)"
+        required: false
+        type: string
+
+  # Optional: build automatically when pushing a tag like v1.2.3
+  # push:
+  #   tags:
+  #     - "v*"
+
+permissions:
+  contents: write  # needed to create the GitHub Release
+
+env:
+  # Customize these to match your repo/files
+  SCRIPT_PATH: WindowsISO Re-Packer.ps1
+  APP_TITLE: Windows ISO Repacker
+  APP_NAME: Windows ISO Re-Packer   # used for filename/base name
+  DIST_DIR: dist
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Prepare PowerShell & ps2exe
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module ps2exe -Scope CurrentUser -Force -AllowClobber
+
+      - name: Resolve version (from input or tag) and normalize
+        id: meta
+        shell: pwsh
+        run: |
+          $raw = "${{ inputs.version }}"
+          if ([string]::IsNullOrWhiteSpace($raw)) {
+            # Fallback to tag name if using `on: push: tags:`
+            $raw = "${{ github.ref_name }}"
+          }
+
+          # Keep a display version with the original leading 'v' if present
+          $display = $raw
+
+          # Strip leading 'v' for semver math
+          $semver = $raw.TrimStart('v')
+
+          # Turn semver (e.g. 1.2.3[-pre][+meta]) into a file version "A.B.C.D"
+          # Drop pre-release/build metadata for file version; pad to 4 numeric parts
+          $core = $semver.Split('+')[0].Split('-')[0]
+          $parts = $core.Split('.')
+          while ($parts.Count -lt 4) { $parts += '0' }
+          $fileVersion = ($parts[0..3] -join '.')
+
+          # Expose outputs
+          "version_display=$display" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "version_semver=$semver"   | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "file_version=$fileVersion"| Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+          Write-Host "Display version: $display"
+          Write-Host "SemVer:         $semver"
+          Write-Host "File version:   $fileVersion"
+
+      - name: Build EXE with ps2exe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "${{ env.DIST_DIR }}" | Out-Null
+          $outFile = Join-Path "${{ env.DIST_DIR }}" "${{ env.APP_NAME }}.exe"
+
+          ps2exe `
+            -inputFile ".\${{ env.SCRIPT_PATH }}" `
+            -outputFile $outFile `
+            -x64 `
+            -STA `
+            -title "${{ env.APP_TITLE }}" `
+            -version "${{ steps.meta.outputs.file_version }}" `
+            -requireAdmin
+
+      - name: List build outputs
+        shell: pwsh
+        run: Get-ChildItem -Recurse -File "${{ env.DIST_DIR }}"
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Prefer the manual input; if not present (e.g. tag push), use ref_name
+          tag: ${{ inputs.version || github.ref_name }}
+          name: ${{ env.APP_NAME }} ${{ steps.meta.outputs.version_display }}
+          body: ${{ inputs.notes }}
+          prerelease: ${{ inputs.prerelease }}
+          artifacts: "${{ env.DIST_DIR }}/*.exe"
+          artifactErrorsFailBuild: true
