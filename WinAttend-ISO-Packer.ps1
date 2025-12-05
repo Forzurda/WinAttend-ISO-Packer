@@ -272,6 +272,25 @@ function Show-Info  { param([string]$m) Append-Log "[INFO] $m" 'SkyBlue' }
 function Show-Ok    { param([string]$m) Append-Log "[ OK ] $m" 'PaleGreen' }
 function Show-Warn  { param([string]$m) Append-Log "[WARN] $m" 'Khaki' }
 
+# ---------- Helper: clear $OEM$ when reusing work dir ----------
+function Clear-OemFolderFromWorkDir {
+  param(
+    [Parameter(Mandatory)][string]$WorkDir
+  )
+
+  $dest = Join-Path $WorkDir '$OEM$'
+  if (Test-Path -LiteralPath $dest) {
+    Show-Warn "Existing `$OEM$ folder detected in reused working folder. Clearing..."
+    try {
+      Remove-Item -LiteralPath $dest -Recurse -Force
+      Show-Ok "Existing `$OEM$ folder removed from working folder."
+    } catch {
+      Show-Error "Failed to clear existing `$OEM$ folder at '$dest': $($_.Exception.Message)"
+      throw
+    }
+  }
+}
+
 # ---------- WPF OpenFileDialog ----------
 function Show-OpenFile([string]$title,[string]$filter,[string]$initialDir) {
   $ofd = New-Object Microsoft.Win32.OpenFileDialog
@@ -303,7 +322,7 @@ function Get-OscdimgPath {
       if ($found) { return $found }
     }
   }
-  throw "Oscdimg.exe not found. Install Windows ADK, place it beside the script/EXE, or compile with -embedFiles to %TEMP%\WinRepacker\oscdimg.exe."
+  throw "Oscdimg.exe not found. Install Windows ADK, place it beside the script/EXE."
 }
 
 # ---------- oscdimg progress ----------
@@ -509,9 +528,24 @@ $StartBtn.Add_Click({
 
     $skip = $false
     if (Test-Path -LiteralPath $workDir) {
-      $res = [System.Windows.MessageBox]::Show("Folder '$workDir' exists. Reuse its contents?","Reuse extracted files?",'YesNo','Question')
-      if ($res -eq 'Yes') { Show-Info "Reusing existing folder contents."; $skip=$true }
-      else { Show-Warn "Deleting existing folder..."; Remove-Item -LiteralPath $workDir -Recurse -Force; Show-Ok "Existing folder deleted." }
+      $res = [System.Windows.MessageBox]::Show(
+        "Folder '$workDir' exists. Reuse its contents?",
+        "Reuse extracted files?",
+        'YesNo',
+        'Question'
+      )
+      if ($res -eq 'Yes') {
+        Show-Info "Reusing existing folder contents."
+        $skip = $true
+
+        # Clear any existing $OEM$ folder when reusing extraction folder
+        Clear-OemFolderFromWorkDir -WorkDir $workDir
+      }
+      else {
+        Show-Warn "Deleting existing folder..."
+        Remove-Item -LiteralPath $workDir -Recurse -Force
+        Show-Ok "Existing folder deleted."
+      }
     }
 
     # Mount & copy
