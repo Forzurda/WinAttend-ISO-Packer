@@ -22,8 +22,8 @@ param(
 
 # ---------- App metadata ----------
 $AppTitle   = 'WinAttend ISO Packer'
-$AppVersion = 'v1'
-$AppAuthor  = 'Forz'
+$AppVersion = 'v1.1'
+$AppAuthor  = 'Jonas Kutra'
 
 # ---------- Relaunch STA/Admin ----------
 function Get-BaseDir { if ($PSScriptRoot -and (Test-Path -LiteralPath $PSScriptRoot)) { $PSScriptRoot } else { [AppDomain]::CurrentDomain.BaseDirectory.TrimEnd('\','/') } }
@@ -162,7 +162,7 @@ $xaml = @"
     <Border DockPanel.Dock="Top" Background="$panel" BorderBrush="$border" BorderThickness="0,0,0,1" Padding="12,10">
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
         <TextBlock Text="$AppTitle" FontWeight="SemiBold" FontSize="16"/>
-        <TextBlock Text="$AppVersion  -  $AppAuthor" Foreground="$muted" Margin="8,0,0,0"/>
+        <TextBlock Text="$AppVersion - $AppAuthor" Foreground="$muted" Margin="8,0,0,0"/>
       </StackPanel>
     </Border>
 
@@ -589,7 +589,9 @@ $StartBtn.Add_Click({
 
     # Build ISO
     $oscd   = Get-OscdimgPath -UserPath $OscdimgPath
-    $outIso = Join-Path $BaseDir ($isoName + '.custom.iso')
+    $answerName = [IO.Path]::GetFileNameWithoutExtension($xmlSel)
+    $answerName = ($answerName -replace '[^\w\.-]+','_').Trim('_','.')         # sanitize
+    $outIso     = Join-Path $BaseDir ("{0}.{1}.iso" -f $isoName, $answerName)
     $bootEtfs = Join-Path $workDir 'boot\etfsboot.com'
     $bootEfi  = Join-Path $workDir 'efi\microsoft\boot\efisys.bin'
     $bootData = '2#p0,e,b"{0}"#pEF,e,b"{1}"' -f $bootEtfs, $bootEfi
