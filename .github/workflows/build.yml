@@ -57,6 +57,23 @@ jobs:
           "version_semver=$semver"   | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "file_version=$fileVersion"| Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
+      - name: Inject display version into script fallback
+        shell: pwsh
+        run: |
+          $script = ".\${{ env.SCRIPT_PATH }}"
+          $ver    = "${{ steps.meta.outputs.version_display }}"  # e.g. v1.2.3
+
+          $content = Get-Content -LiteralPath $script -Raw
+          $pattern = '(?m)^\s*\$AppVersion\s*=\s*[''"]v1\.0\.0[''"]\s*$'
+          if ($content -notmatch $pattern) {
+            throw "Could not find the fallback `$AppVersion = 'v1.0.0'` line to patch in $script"
+          }
+
+          $patched = [regex]::Replace($content, $pattern, "`$AppVersion = '$ver'")
+          Set-Content -LiteralPath $script -Value $patched -Encoding UTF8
+          Write-Host "Injected fallback AppVersion=$ver into $script"
+
+      
       - name: Build EXE with ps2exe (with icon)
         shell: pwsh
         run: |
