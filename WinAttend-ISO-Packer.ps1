@@ -22,8 +22,38 @@ param(
 
 # ---------- App metadata ----------
 $AppTitle   = 'WinAttend ISO Packer'
-$AppVersion = 'v1.1'
 $AppAuthor  = 'Jonas Kutra'
+
+# App Version
+# This gets patched by GitHub Actions (fallback when running as .ps1)
+$AppVersion = 'v1.0.0'
+
+function Get-AppVersion {
+  param([string]$Fallback)
+
+  try {
+    if (Test-IsCompiled) {
+      $exe = [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+      $vi  = (Get-Item -LiteralPath $exe).VersionInfo
+
+      # Prefer ProductVersion if present, else FileVersion
+      $v = $vi.ProductVersion
+      if ([string]::IsNullOrWhiteSpace($v)) { $v = $vi.FileVersion }
+
+      if (-not [string]::IsNullOrWhiteSpace($v)) {
+        # Normalize to "vX.Y.Z" style if it isn't already
+        if ($v -notmatch '^\s*v') { $v = "v$($v.Trim())" }
+        return $v.Trim()
+      }
+    }
+  } catch {}
+
+  return $Fallback
+}
+
+$AppVersion = Get-AppVersion -Fallback $AppVersion
+
+
 
 # ---------- Relaunch STA/Admin ----------
 function Get-BaseDir { if ($PSScriptRoot -and (Test-Path -LiteralPath $PSScriptRoot)) { $PSScriptRoot } else { [AppDomain]::CurrentDomain.BaseDirectory.TrimEnd('\','/') } }
